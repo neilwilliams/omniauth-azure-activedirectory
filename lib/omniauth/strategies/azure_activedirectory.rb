@@ -85,7 +85,7 @@ module OmniAuth
       # credentials at the authorization endpoint.
       def callback_phase
         error = request.params['error_reason'] || request.params['error']
-        fail(OAuthError, error) if error
+        return fail!("OauthError", OAuthError.new(error)) if error
         @session_state = request.params['session_state']
         @id_token = request.params['id_token']
         @code = request.params['code']
@@ -118,7 +118,7 @@ module OmniAuth
       # @return String
       def client_id
         return options.client_id if options.client_id
-        fail StandardError, 'No client_id specified in AzureAD configuration.'
+        fail! "no_client_id", StandardError.new('No client_id specified in AzureAD configuration.')
       end
 
       ##
@@ -243,7 +243,7 @@ module OmniAuth
       # @return String
       def signing_keys_url
         return openid_config['jwks_uri'] if openid_config.include? 'jwks_uri'
-        fail StandardError, 'No jwks_uri in OpenId config response.'
+        fail! "no_jwks_uri", StandardError.new('No jwks_uri in OpenId config response.')
       end
 
       ##
@@ -253,7 +253,7 @@ module OmniAuth
       # @return String
       def tenant
         return options.tenant if options.tenant
-        fail StandardError, 'No tenant specified in AzureAD configuration.'
+        fail! "no_tenant", StandardError.new('No tenant specified in AzureAD configuration.')
       end
 
       ##
@@ -278,15 +278,14 @@ module OmniAuth
               key['kid'] == header['kid']
             end || {})['x5c']
             if x5c.nil? || x5c.empty?
-              fail JWT::VerificationError,
-                   'No keys from key endpoint match the id token'
+              fail! "no_keys", JWT::VerificationError.new('No keys from key endpoint match the id token')
             end
             # The key also contains other fields, such as n and e, that are
             # redundant. x5c is sufficient to verify the id token.
             OpenSSL::X509::Certificate.new(JWT.base64url_decode(x5c.first)).public_key
           end
         return jwt_claims, jwt_header if jwt_claims['nonce'] == read_nonce
-        fail JWT::DecodeError, 'Returned nonce did not match.'
+        fail! "nonce_no_match", JWT::DecodeError.new('Returned nonce did not match.')
       end
 
       ##
@@ -302,8 +301,7 @@ module OmniAuth
         full_hash = OpenSSL::Digest.new(algorithm).digest code
         c_hash = JWT.base64url_encode full_hash[0..full_hash.length / 2 - 1]
         return if c_hash == claims['c_hash']
-        fail JWT::VerificationError,
-             'c_hash in id token does not match auth code.'
+        fail! "c_hash_no_match", JWT::VerificationError.new('c_hash in id token does not match auth code.')
       end
 
       ##
