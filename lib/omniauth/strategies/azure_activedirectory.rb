@@ -90,7 +90,7 @@ module OmniAuth
         @id_token = request.params['id_token']
         @code = request.params['code']
         @claims, @header = validate_and_parse_id_token(@id_token)
-        validate_chash(@code, @claims, @header)
+        validate_chash(@code, @claims, @header) if @claims && @header
         super
       end
 
